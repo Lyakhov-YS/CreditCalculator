@@ -3,6 +3,12 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 
 public class Client {
+
+    /**
+     *
+     * @param args
+     * @throws InterruptedException
+     */
     public static void main(String[] args) throws InterruptedException {
 
 // запускаем подключение сокета по известным координатам и нициализируем приём сообщений с консоли клиента
@@ -11,64 +17,49 @@ public class Client {
             DataOutputStream oos = new DataOutputStream(socket.getOutputStream());
             DataInputStream ois = new DataInputStream(socket.getInputStream());    )
         {
-
             System.out.println("Client connected to socket.");
-            System.out.println();
-            System.out.println("Client writing channel = oos & reading channel = ois initialized.");
+            String [] countryar = read("export.csv");
 
-            String [] countryar = run();
-            int i = 0;
-// проверяем живой ли канал и работаем если тру
-            while(!socket.isOutputShutdown()){
+// проверяем живой ли канал и работаем
+            for (int i = 0; !socket.isOutputShutdown(); i++) {
 
-// ждём консоли клиента на предмет появления в ней данных
-                //if(br.ready()){
-
-                for (; countryar[i]!="Done"; i++) {
-
-// данные появились - работаем
-                    System.out.println("Client start writing in channel...");
-                    Thread.sleep(1000);
-                    //String clientCommand = br.readLine();
-                    String clientCommand = countryar[i];
-
-// пишем данные с консоли в канал сокета для сервера
-                    oos.writeUTF(clientCommand);
-                    oos.flush();
-                    System.out.println("Clien sent message " + clientCommand + " to server.");
-                    Thread.sleep(1000);
+                System.out.println("Client start writing in channel...");
+                Thread.sleep(1000);
+                String clientCommand = countryar[i];
+                oos.writeUTF(clientCommand);
+                oos.flush();
+                System.out.println("Clien sent message " + clientCommand + " to server.");
+                Thread.sleep(1000);
 // ждём чтобы сервер успел прочесть сообщение из сокета и ответить
 
 // проверяем условие выхода из соединения
-                    if(clientCommand.equalsIgnoreCase("quit")){
+                if(clientCommand.equalsIgnoreCase("quit")){
 
 // если условие выхода достигнуто разъединяемся
-                        System.out.println("Client kill connections");
-                        Thread.sleep(2000);
-
-// смотрим что нам ответил сервер на последок
-                        if(ois.available()!=0)    {
-                            System.out.println("reading...");
-                            String in = ois.readUTF();
-                            System.out.println(in);
-                        }
-
-// после предварительных приготовлений выходим из цикла записи чтения
-                        break;
-                    }
-
-// если условие разъединения не достигнуто продолжаем работу
-                    System.out.println("Client wrote & start waiting for data from server...");
+                    System.out.println("Client kill connections");
                     Thread.sleep(2000);
 
-// проверяем, что нам ответит сервер на сообщение(за предоставленное ему время в паузе он должен был успеть ответить
+// смотрим что нам ответил сервер на последок
                     if(ois.available()!=0)    {
-
-// если успел забираем ответ из канала сервера в сокете и сохраняемеё в ois переменную,  печатаем на консоль
                         System.out.println("reading...");
                         String in = ois.readUTF();
                         System.out.println(in);
                     }
+// после предварительных приготовлений выходим из цикла записи чтения
+                    break;
+                }
+
+// если условие разъединения не достигнуто продолжаем работу
+                System.out.println("Client wrote & start waiting for data from server...");
+                Thread.sleep(2000);
+
+// проверяем, что нам ответит сервер на сообщение(за предоставленное ему время в паузе он должен был успеть ответить
+                if(ois.available()!=0)    {
+
+// если успел забираем ответ из канала сервера в сокете и сохраняемеё в ois переменную,  печатаем на консоль
+                    System.out.println("reading...");
+                    String in = ois.readUTF();
+                    System.out.println(in);
                 }
             }
 
@@ -83,9 +74,13 @@ public class Client {
         }
     }
 
-    public static String[] run() {
+    /*
+    Функция читает csv-файл и возращает массив запросов
+    *@param csvFile - путь к файлу и название файла
+    *@return массив запросов
+     */
+    private static String[] read(String csvFile) {
 
-        String csvFile = "test.csv";
         BufferedReader br = null;
         String line = "";
         String cvsSplitBy = ";";
@@ -103,23 +98,19 @@ public class Client {
                 } else {
                     // use comma as separator
                     country = line.split(cvsSplitBy);
-                    //System.out.println("GET?param1=" + country[0] + "&param2=" + country[1] + "&param3=" + country[2] + "&param4=" + country[3] + "&param5=" + country[4] + "&param6=" + country[5]);
+                    //System.out.println("GET?param1=" + country[0] + "&param2=" + country[1] + "&param3=" + country[2] + "&payment_type=" + country[3] + "&param5=" + country[4] + "&param6=" + country[5]);
 
-                    String request = "GET?";
-                    for (int i = 0; i <= 5; i++) {
-                        if (i != 0) {
-                            request = request + "&";
-                        }
-                        request = request + "param" + i + "=" + country[i];
-                    }
+                    String request = "GET?amount_of_credit=" + country[0] + // размер кредита
+                            "&interest_of_credit=" + country[1] +           // процент по кредиту
+                            "&amount_of_first_payment=" + country[2] +      // размер первоначального взноса
+                            "&type_of_payment=" + country[3] +              // вид платежей (annuity или differential)
+                            "&period=" + country[4] +                       // срок кредита
+                            "&date_of_first_payment=" + country[5];         // срок первого платежа
                     countryarr[j]=request;
                     j++;
-                    //System.out.println(request);
                 }
             }
-
-
-
+            countryarr[j] = "quit";
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -134,8 +125,6 @@ public class Client {
                 }
             }
         }
-        countryarr[4]="Done";
-        //System.out.println("Done");
         return countryarr;
     }
 }
